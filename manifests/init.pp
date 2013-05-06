@@ -111,7 +111,7 @@ class mcollective ( $nocnode = 'el6' ) {
         source  => 'puppet:///modules/mcollective/noc-public.pem',
     }
 
-    file { '/etc/mcollective/ssl/noc-private.pem' :
+    file { '/etc/mcollective/ssl/clients/noc-private.pem' :
         ensure  => $::hostname ? {
             $nocnode => present,
             default  => absent,
