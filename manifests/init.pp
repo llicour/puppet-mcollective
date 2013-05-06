@@ -1,3 +1,10 @@
+# Install and configure MCollective servers (managed nodes) and client
+# (management node)
+# Set MCollective with the OpenSSL based Security Plugin
+#
+# The Marionette Collective AKA MCollective is a framework to build
+# server orchestration or parallel job execution systems.
+
 class mcollective ( $nocnode = 'el6' ) {
 
     include yum
@@ -10,6 +17,14 @@ class mcollective ( $nocnode = 'el6' ) {
     package { 'mcollective' :
         ensure   => installed,
         require  => Package[ 'mcollective-common' ],
+    }
+
+    package { 'mcollective-client' :
+        ensure  => $::hostname ? {
+            $nocnode => present,
+            default  => absent,
+        },
+        require => Package[ 'mcollective-common' ],
     }
 
     file { '/etc/mcollective/ssl' :
@@ -96,10 +111,23 @@ class mcollective ( $nocnode = 'el6' ) {
         source  => 'puppet:///modules/mcollective/noc-public.pem',
     }
 
+    file { '/etc/mcollective/ssl/clients/noc-private.pem' :
+        ensure  => $::hostname ? {
+            $nocnode => present,
+            default  => absent,
+        },
+        require => [  Package[ 'mcollective-common' ],
+                      File[ '/etc/mcollective/ssl/clients' ] ],
+        owner   => 'root',
+        group   => 'root',
+        mode    => '0644',
+        source  => 'puppet:///modules/mcollective/noc-private.pem',
+    }
+
     service { 'mcollective' :
         ensure  => running,
         require => [  Package[ 'mcollective' ],
-                      File[  '/etc/mcollective/server.cfg',
+                      File[ '/etc/mcollective/server.cfg',
                             '/etc/mcollective/ssl/server-public.pem',
                             '/etc/mcollective/ssl/server-private.pem',
                             '/etc/mcollective/ssl/clients/noc-public.pem'], ],
