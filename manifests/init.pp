@@ -8,6 +8,7 @@
 class mcollective ( $nocnode = 'el6' ) {
 
     include yum
+    include yum::kermit
 
     package { 'mcollective-common' :
         ensure   => present,
