@@ -86,7 +86,7 @@ class mcollective ( $nocnode = 'el6' ) {
         owner   => 'root',
         group   => 'root',
         mode    => '0640',
-        source  => 'puppet:///modules/mcollective/server-private.pem',
+        source  => 'puppet:///public/mcollective/server-private.pem',
         require => Package[ 'mcollective-common' ],
     }
 
@@ -99,7 +99,7 @@ class mcollective ( $nocnode = 'el6' ) {
             $nocnode => '0644',
             default  => '0640',
         },
-        source  => 'puppet:///modules/mcollective/server-public.pem',
+        source  => 'puppet:///public/mcollective/server-public.pem',
     }
 
     file { '/etc/mcollective/ssl/clients/noc-public.pem' :
@@ -109,7 +109,7 @@ class mcollective ( $nocnode = 'el6' ) {
         owner   => 'root',
         group   => 'root',
         mode    => '0644',
-        source  => 'puppet:///modules/mcollective/noc-public.pem',
+        source  => 'puppet:///public/mcollective/noc-public.pem',
     }
 
     file { '/etc/mcollective/ssl/clients/noc-private.pem' :
