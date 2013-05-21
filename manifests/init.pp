@@ -122,7 +122,7 @@ class mcollective ( $nocnode = 'el6' ) {
         owner   => 'root',
         group   => 'root',
         mode    => '0644',
-        source  => 'puppet:///modules/mcollective/noc-private.pem',
+        source  => 'puppet:///private/mcollective/noc-private.pem',
     }
 
     service { 'mcollective' :
