@@ -112,17 +112,16 @@ class mcollective ( $nocnode = 'el6' ) {
         source  => 'puppet:///public/mcollective/noc-public.pem',
     }
 
-    file { '/etc/mcollective/ssl/clients/noc-private.pem' :
-        ensure  => $::hostname ? {
-            $nocnode => present,
-            default  => absent,
-        },
-        require => [  Package[ 'mcollective-common' ],
-                      File[ '/etc/mcollective/ssl/clients' ] ],
-        owner   => 'root',
-        group   => 'root',
-        mode    => '0644',
-        source  => 'puppet:///private/mcollective/noc-private.pem',
+    if $::hostname == $nocnode {
+        file { '/etc/mcollective/ssl/clients/noc-private.pem' :
+            ensure  => present 
+            require => [  Package[ 'mcollective-common' ],
+                          File[ '/etc/mcollective/ssl/clients' ] ],
+            owner   => 'root',
+            group   => 'root',
+            mode    => '0644',
+            source  => 'puppet:///private/mcollective/noc-private.pem',
+        }
     }
 
     service { 'mcollective' :
