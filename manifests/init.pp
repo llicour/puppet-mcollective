@@ -114,7 +114,7 @@ class mcollective ( $nocnode = 'el6' ) {
 
     if $::hostname == $nocnode {
         file { '/etc/mcollective/ssl/clients/noc-private.pem' :
-            ensure  => present 
+            ensure  => present,
             require => [  Package[ 'mcollective-common' ],
                           File[ '/etc/mcollective/ssl/clients' ] ],
             owner   => 'root',
