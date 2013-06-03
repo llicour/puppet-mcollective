@@ -5,10 +5,16 @@
 # The Marionette Collective AKA MCollective is a framework to build
 # server orchestration or parallel job execution systems.
 
-class mcollective ( $nocnode = 'el6' ) {
+class mcollective ( $nocnode = 'el6.labolinux.fr' ) {
 
     include yum
     include yum::kermit
+
+    # Used with factsource facter plugin
+    #package { 'mcollective-plugins-facter_facts' :
+    #    ensure   => present,
+    #    require  => Yumrepo[ 'kermit-custom' ],
+    #}
 
     package { 'mcollective-common' :
         ensure   => present,
@@ -21,7 +27,7 @@ class mcollective ( $nocnode = 'el6' ) {
     }
 
     package { 'mcollective-client' :
-        ensure  => $::hostname ? {
+        ensure  => $::fqdn ? {
             $nocnode => present,
             default  => absent,
         },
@@ -44,6 +50,7 @@ class mcollective ( $nocnode = 'el6' ) {
         mode    => '0755',
     }
 
+    # Used with factsource yaml plugin (need to restart mcollective for changed)
     file { '/etc/mcollective/facts.yaml' :
         owner    => 'root',
         group    => 'root',
@@ -53,7 +60,8 @@ class mcollective ( $nocnode = 'el6' ) {
         # avoid including highly-dynamic facts
         # as they will cause unnecessary template writes
         #content => inline_template('<%= scope.to_hash.reject { |k,v| k.to_s =~ /(uptime|timestamp|memory|free|swap)/ }.to_yaml %>')
-        content  => inline_template('<%= Hash[scope.to_hash.reject { |k,v| k.to_s =~ /(uptime|timestamp|memory|free|swap)/ }.sort].to_yaml %>')
+        content  => inline_template('<%= Hash[scope.to_hash.reject { |k,v| k.to_s =~ /(uptime|timestamp|memory|free|swap)/ }.sort].to_yaml %>'),
+        notify => Service["mcollective"],
     }
 
     file { '/etc/mcollective/server.cfg' :
@@ -62,22 +70,23 @@ class mcollective ( $nocnode = 'el6' ) {
         owner        => 'root',
         group        => 'root',
         mode         => '0640',
-        source       => 'puppet:///modules/mcollective/serverprod.cfg',
-        #source      => $hostname ? {
+        content      => template( 'mcollective/server.cfg' ),
+        #source      => $::fqdn ? {
         #    'el4'   => 'puppet:///modules/mcollective/serverqa.cfg',
         #    default => 'puppet:///modules/mcollective/serverprod.cfg',
         #},
+        notify => Service["mcollective"],
     }
 
     file { '/etc/mcollective/client.cfg' :
-        ensure  => $::hostname ? {
+        ensure  => $::fqdn ? {
             $nocnode => present,
             default  => absent,
         },
         owner   => 'root',
         group   => 'root',
         mode    => '0644',
-        source  => 'puppet:///modules/mcollective/client.cfg',
+        content      => template( 'mcollective/client.cfg' ),
         require => Package[ 'mcollective-common' ],
     }
 
@@ -88,6 +97,7 @@ class mcollective ( $nocnode = 'el6' ) {
         mode    => '0640',
         source  => 'puppet:///public/mcollective/server-private.pem',
         require => Package[ 'mcollective-common' ],
+        notify => Service["mcollective"],
     }
 
     file { '/etc/mcollective/ssl/server-public.pem' :
@@ -95,11 +105,12 @@ class mcollective ( $nocnode = 'el6' ) {
         require => Package[ 'mcollective-common' ],
         owner   => 'root',
         group   => 'root',
-        mode    => $::hostname ? {
+        mode    => $::fqdn ? {
             $nocnode => '0644',
             default  => '0640',
         },
         source  => 'puppet:///public/mcollective/server-public.pem',
+        notify => Service["mcollective"],
     }
 
     file { '/etc/mcollective/ssl/clients/noc-public.pem' :
@@ -110,9 +121,10 @@ class mcollective ( $nocnode = 'el6' ) {
         group   => 'root',
         mode    => '0644',
         source  => 'puppet:///public/mcollective/noc-public.pem',
+        notify => Service["mcollective"],
     }
 
-    if $::hostname == $nocnode {
+    if $::fqdn == $nocnode {
         file { '/etc/mcollective/ssl/clients/noc-private.pem' :
             ensure  => present,
             require => [  Package[ 'mcollective-common' ],
