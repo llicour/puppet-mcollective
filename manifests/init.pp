@@ -1,14 +1,15 @@
-# Install and configure MCollective servers (managed nodes) and client
-# (management node)
+# Install and configure MCollective servers (managed nodes)
 # Set MCollective with the OpenSSL based Security Plugin
 #
 # The Marionette Collective AKA MCollective is a framework to build
 # server orchestration or parallel job execution systems.
 
-class mcollective ( $nocnode = 'el6.labolinux.fr' ) {
+class mcollective {
+
+    include mcollective::params
 
     include yum
-    include yum::kermit
+    include kermit::yum
 
     # Used with factsource facter plugin
     #package { 'mcollective-plugins-facter_facts' :
@@ -18,20 +19,12 @@ class mcollective ( $nocnode = 'el6.labolinux.fr' ) {
 
     package { 'mcollective-common' :
         ensure   => present,
-        require  => Yumrepo[ 'kermit-custom', 'kermit-thirdpart' ],
+        require  => Yumrepo[ 'kermit-thirdpart' ],
     }
 
     package { 'mcollective' :
         ensure   => installed,
         require  => Package[ 'mcollective-common' ],
-    }
-
-    package { 'mcollective-client' :
-        ensure  => $::fqdn ? {
-            $nocnode => present,
-            default  => absent,
-        },
-        require => Package[ 'mcollective-common' ],
     }
 
     file { '/etc/mcollective/ssl' :
@@ -45,9 +38,14 @@ class mcollective ( $nocnode = 'el6.labolinux.fr' ) {
     file { '/etc/mcollective/ssl/clients' :
         ensure  => 'directory',
         require => File[ '/etc/mcollective/ssl' ],
+        recurse => true,
+        purge   => true,
+        force   => true,
         owner   => 'root',
         group   => 'root',
-        mode    => '0755',
+        mode    => '0644',
+        source  => 'puppet:///public/mcollective/clients',
+        notify  => Service["mcollective"],
     }
 
     # Used with factsource yaml plugin (need to restart mcollective for changed)
@@ -78,18 +76,6 @@ class mcollective ( $nocnode = 'el6.labolinux.fr' ) {
         notify => Service["mcollective"],
     }
 
-    file { '/etc/mcollective/client.cfg' :
-        ensure  => $::fqdn ? {
-            $nocnode => present,
-            default  => absent,
-        },
-        owner   => 'root',
-        group   => 'root',
-        mode    => '0644',
-        content      => template( 'mcollective/client.cfg' ),
-        require => Package[ 'mcollective-common' ],
-    }
-
     file { '/etc/mcollective/ssl/server-private.pem' :
         ensure  => present,
         owner   => 'root',
@@ -105,35 +91,9 @@ class mcollective ( $nocnode = 'el6.labolinux.fr' ) {
         require => Package[ 'mcollective-common' ],
         owner   => 'root',
         group   => 'root',
-        mode    => $::fqdn ? {
-            $nocnode => '0644',
-            default  => '0640',
-        },
+        mode    => '0640',
         source  => 'puppet:///public/mcollective/server-public.pem',
         notify => Service["mcollective"],
-    }
-
-    file { '/etc/mcollective/ssl/clients/noc-public.pem' :
-        ensure  => present,
-        require => [  Package[ 'mcollective-common' ],
-                      File[ '/etc/mcollective/ssl/clients' ] ],
-        owner   => 'root',
-        group   => 'root',
-        mode    => '0644',
-        source  => 'puppet:///public/mcollective/noc-public.pem',
-        notify => Service["mcollective"],
-    }
-
-    if $::fqdn == $nocnode {
-        file { '/etc/mcollective/ssl/clients/noc-private.pem' :
-            ensure  => present,
-            require => [  Package[ 'mcollective-common' ],
-                          File[ '/etc/mcollective/ssl/clients' ] ],
-            owner   => 'root',
-            group   => 'root',
-            mode    => '0644',
-            source  => 'puppet:///private/mcollective/noc-private.pem',
-        }
     }
 
     service { 'mcollective' :
@@ -142,7 +102,7 @@ class mcollective ( $nocnode = 'el6.labolinux.fr' ) {
                       File[ '/etc/mcollective/server.cfg',
                             '/etc/mcollective/ssl/server-public.pem',
                             '/etc/mcollective/ssl/server-private.pem',
-                            '/etc/mcollective/ssl/clients/noc-public.pem'], ],
+                            '/etc/mcollective/ssl/clients'], ],
         enable  => true,
     }
 
